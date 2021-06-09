@@ -2,9 +2,9 @@
 Here you can find a list of examples to help you with your [Iota Streams](https://github.com/iotaledger/streams) 
 integrations. The examples have been broken down into 3 sections:
  
-- [Single Publisher](#single-publisher-examples--srcexamplessingle_publisher) 
-- [Multi Publisher](#multi-publisher-examples--srcexamplesmulti_publisher)
-- [Utility](#utility-examples--srcexamplesutility)
+- [Single Publisher](#single-publisher-examples) 
+- [Multi Publisher](#multi-publisher-examples)
+- [Utility](#utility-examples)
 
 All of the examples are ready to be run in the `src/main.rs` file and can be tested by simply running: 
 
@@ -16,7 +16,9 @@ These examples default to sending to `https://chrysalis-nodes.iota.org` which is
 would like faster performance it is recommended that you change this node url to your local/private node 
 in the `src/main.rs` file before running. 
 
-## Single Publisher Examples [->](src/examples/single_publisher)
+## Single Publisher Examples 
+####[link](src/examples/single_publisher)
+
 These examples are intended to give an overview on different approaches for having a single publisher 
 in a channel. 
 
@@ -36,7 +38,8 @@ branches are generated with different message chains and access restrictions. Su
 - Subscriber C: Not properly subscribed at all and only able to read from public branch C
 
 
-## Multi Publisher Examples [->](src/examples/multi_publisher)
+## Multi Publisher Examples 
+####[link](src/examples/multi_publisher)
 These examples are intended to give an overview on different approaches for having multiple publishers 
 in a channel. It is highly recommended that one does not have multiple concurrent publishers within a 
 `Single Branch` channel. When there are multiple publishers within the same branch of a `Multi Branch` 
@@ -54,7 +57,8 @@ post their messages in alternating order in branch A, demonstrating the synchron
 publishing entity to keep states in check. The same is done for Subscribers C and D in branch B. 
 
 
-## Utility Examples [->](src/examples/utility)
+## Utility Examples 
+####[link](src/examples/utility)
 These examples highlight specific pieces of Streams functionality. 
 
 #### [Fetch Previous Messages](src/examples/utility/fetch_prev.rs)
