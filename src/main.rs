@@ -4,7 +4,7 @@ mod examples;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let url = "http://68.183.204.5:14265";
+    let url = "https://chrysalis-nodes.iota.org";
 
     println!("Starting Examples");
     println!("---------------------------------------");
