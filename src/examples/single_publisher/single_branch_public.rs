@@ -1,6 +1,6 @@
 use iota_streams::{
     app::transport::tangle::client::Client,
-    app_channels::api::tangle::{Address, Author, Bytes, ChannelType, Subscriber},
+    app_channels::api::tangle::{Address, Author, Bytes, Subscriber},
     core::{println, Result},
 };
 
@@ -22,7 +22,7 @@ pub fn example(node_url: &str) -> Result<()> {
     let client = Client::new_from_url(node_url);
 
     // Generate an Author
-    let mut author = Author::new(seed, ChannelType::SingleBranch, client.clone());
+    let mut author = Author::new(seed, "utf-8", 1024, false, client.clone());
 
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
     let announcement_link = author.send_announce()?;
@@ -51,7 +51,7 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // ------------------------------------------------------------------
     // In their own separate instances generate the subscriber(s) that will be attaching to the channel
-    let mut subscriber = Subscriber::new("SubscriberA", client);
+    let mut subscriber = Subscriber::new("SubscriberA", "utf-8", 1024, client);
 
     // Generate an Address object from the provided announcement link string from the Author
     let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();

@@ -1,7 +1,7 @@
 use iota_streams::{
     app::transport::tangle::client::Client,
     app_channels::api::tangle::{
-        Address, Author, Bytes, ChannelType, MessageContent, PublicKey, Subscriber,
+        Address, Author, Bytes, MessageContent, PublicKey, Subscriber,
         UnwrappedMessage,
     },
     core::{println, Result},
@@ -29,8 +29,7 @@ pub fn example(node_url: &str) -> Result<()> {
     let client = Client::new_from_url(node_url);
 
     // Generate an Author
-    let mut author = Author::new(seed, ChannelType::MultiBranch, client.clone());
-
+    let mut author = Author::new(seed, "utf-8", 1024, true, client.clone());
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
     let announcement_link = author.send_announce()?;
     // This link acts as a root for the channel itself
@@ -43,9 +42,9 @@ pub fn example(node_url: &str) -> Result<()> {
     // ------------------------------------------------------------------
     // In their own separate instances generate the subscriber(s) that will be attaching to the channel
 
-    let mut subscriber_a = Subscriber::new("SubscriberA", client.clone());
-    let mut subscriber_b = Subscriber::new("SubscriberB", client.clone());
-    let mut subscriber_c = Subscriber::new("SubscriberC", client);
+    let mut subscriber_a = Subscriber::new("SubscriberA", "utf-8", 1024, client.clone());
+    let mut subscriber_b = Subscriber::new("SubscriberB", "utf-8", 1024, client.clone());
+    let mut subscriber_c = Subscriber::new("SubscriberC", "utf-8", 1024, client);
 
     // Generate an Address object from the provided announcement link string from the Author
     let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();

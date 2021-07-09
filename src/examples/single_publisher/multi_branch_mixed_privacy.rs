@@ -1,9 +1,13 @@
 use iota_streams::{
     app::transport::tangle::client::Client,
-    app_channels::api::tangle::{
-        Address, Author, Bytes, ChannelType, PublicKey, Subscriber, UnwrappedMessage,
+    app_channels::api::{
+        pskid_from_psk,
+        psk_from_seed,
+        tangle::{
+            Address, Author, Bytes, PublicKey, Subscriber, UnwrappedMessage,
+        }
     },
-    core::{println, psk::Psk, Result},
+    core::{println, Result},
 };
 
 use crate::examples::{verify_messages, ALPH9};
@@ -24,8 +28,7 @@ pub fn example(node_url: &str) -> Result<()> {
     let client = Client::new_from_url(node_url);
 
     // Generate an Author
-    let mut author = Author::new(seed, ChannelType::MultiBranch, client.clone());
-
+    let mut author = Author::new(seed, "utf-8", 1024, true, client.clone());
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
     let announcement_link = author.send_announce()?;
     // This link acts as a root for the channel itself
@@ -40,18 +43,19 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // Author will now store a PSK to be used by Subscriber B. This will return a PskId (first half
     // of key for usage in keyload generation)
-    let psk = Psk::clone_from_slice(&key);
-    let pskid = author.store_psk(psk);
+    let psk = psk_from_seed(&key);
+    let pskid = pskid_from_psk(&psk);
+    author.store_psk(pskid, psk);
 
     // ------------------------------------------------------------------
     // In their own separate instances generate the subscriber(s) that will be attaching to the channel
 
     // This subscriber will subscribe traditionally
-    let mut subscriber_a = Subscriber::new("SubscriberA", client.clone());
+    let mut subscriber_a = Subscriber::new("SubscriberA", "utf-8", 1024, client.clone());
     // This subscriber will use a PSK
-    let mut subscriber_b = Subscriber::new("SubscriberB", client.clone());
+    let mut subscriber_b = Subscriber::new("SubscriberB", "utf-8", 1024, client.clone());
     // This subscriber will not subscribe at all
-    let mut subscriber_c = Subscriber::new("SubscriberC", client);
+    let mut subscriber_c = Subscriber::new("SubscriberC", "utf-8", 1024, client);
 
     // Generate an Address object from the provided announcement link string from the Author
     let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();
@@ -69,8 +73,9 @@ pub fn example(node_url: &str) -> Result<()> {
     let sub_a_pk = subscriber_a.get_pk().as_bytes();
 
     // Sub B stores PSK shared by Author
-    let psk = Psk::clone_from_slice(&key);
-    let _sub_pskid = subscriber_b.store_psk(psk);
+    let psk = psk_from_seed(&key);
+    let pskid = pskid_from_psk(&psk);
+    subscriber_b.store_psk(pskid, psk);
 
     // This is the subscription link that should be provided to the Author to complete subscription
     // for user A

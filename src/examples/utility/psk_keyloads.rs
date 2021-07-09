@@ -1,7 +1,11 @@
 use iota_streams::{
     app::transport::tangle::client::Client,
-    app_channels::api::tangle::{Address, Author, ChannelType, Subscriber},
-    core::{println, psk::Psk, Result},
+    app_channels::api::{
+        pskid_from_psk,
+        psk_from_seed,
+        tangle::{Address, Author, Subscriber}
+    },
+    core::{println, Result},
 };
 
 use crate::examples::ALPH9;
@@ -26,8 +30,7 @@ pub fn example(node_url: &str) -> Result<()> {
     let client = Client::new_from_url(node_url);
 
     // Generate an Author
-    let mut author = Author::new(seed, ChannelType::MultiBranch, client.clone());
-
+    let mut author = Author::new(seed, "utf-8", 1024, true, client.clone());
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
     let announcement_link = author.send_announce()?;
     // This link acts as a root for the channel itself
@@ -42,12 +45,13 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // Author will now store a PSK to be used by Subscriber B. This will return a PskId (first half
     // of key for usage in keyload generation)
-    let psk = Psk::clone_from_slice(&key);
-    let pskid = author.store_psk(psk);
+    let psk = psk_from_seed(&key);
+    let pskid = pskid_from_psk(&psk);
+    author.store_psk(pskid, psk);
 
     // ------------------------------------------------------------------
     // In their own separate instances generate the subscriber(s) that will be attaching to the channel
-    let mut subscriber = Subscriber::new("SubscriberA", client);
+    let mut subscriber = Subscriber::new("SubscriberA", "utf-8", 1024, client);
 
     // Generate an Address object from the provided announcement link string from the Author
     let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();
@@ -57,7 +61,9 @@ pub fn example(node_url: &str) -> Result<()> {
     subscriber.receive_announcement(&ann_address)?;
 
     // Store the PSK in the Subscriber instance
-    let _sub_pskid = subscriber.store_psk(Psk::clone_from_slice(&key));
+    let psk = psk_from_seed(&key);
+    let pskid = pskid_from_psk(&psk);
+    subscriber.store_psk(pskid,psk);
     // ----------------------------------------------------------------------
 
     // Author sends Keyload with PSK included

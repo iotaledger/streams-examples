@@ -4,7 +4,7 @@ mod examples;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let url = "https://chrysalis-nodes.iota.org";
+    let url = "http://68.183.204.5:14265";
 
     println!("Starting Examples");
     println!("---------------------------------------");
@@ -35,10 +35,6 @@ async fn main() -> Result<()> {
 
     println!("\n---------------------------------------");
     println!("Utility Examples");
-
-    println!("\n---------------------------------------");
-    println!("\nPrevious Message Retrieval\n");
-    examples::fetch_prev::example(url)?;
 
     println!("\n---------------------------------------");
     println!("\nGranting and Revoking Access\n");
