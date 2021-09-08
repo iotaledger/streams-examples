@@ -118,7 +118,7 @@ pub async fn example(node_url: &str) -> Result<()> {
         &vec![PublicKey::from_bytes(sub_a_pk)?.into()],
     ).await?;
     println!(
-        "\nSent Keyload for Sub A: {}, seq: {}",
+        "\nSent Keyload for Sub A: {}, tangle index: {:#}",
         keyload_a_link,
         _seq_a_link.unwrap()
     );
@@ -130,7 +130,7 @@ pub async fn example(node_url: &str) -> Result<()> {
         &vec![PublicKey::from_bytes(sub_b_pk)?.into()],
     ).await?;
     println!(
-        "\nSent Keyload for Sub B: {}, seq: {}",
+        "\nSent Keyload for Sub B: {}, tangle index: {:#}",
         keyload_b_link,
         _seq_b_link.unwrap()
     );
@@ -142,7 +142,7 @@ pub async fn example(node_url: &str) -> Result<()> {
         &vec![PublicKey::from_bytes(sub_c_pk)?.into()],
     ).await?;
     println!(
-        "\nSent Keyload for Sub C: {}, seq: {}\n",
+        "\nSent Keyload for Sub C: {}, tangle index: {:#}\n",
         keyload_c_link,
         _seq_c_link.unwrap()
     );
@@ -175,7 +175,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub A: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub A: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 
@@ -201,7 +201,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub B: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub B: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 
@@ -227,7 +227,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub C: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub C: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 

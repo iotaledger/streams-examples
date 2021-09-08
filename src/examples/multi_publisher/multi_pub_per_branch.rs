@@ -128,7 +128,7 @@ pub async fn example(node_url: &str) -> Result<()> {
     let (keyload_a_link, _seq_a_link) =
         author.send_keyload(&announcement_link, &vec![pks[0].into(), pks[1].into()]).await?;
     println!(
-        "\nSent Keyload for Sub A and B: {}, seq: {}",
+        "\nSent Keyload for Sub A and B: {}, tangle index: {:#}",
         keyload_a_link,
         _seq_a_link.unwrap()
     );
@@ -138,7 +138,7 @@ pub async fn example(node_url: &str) -> Result<()> {
     let (keyload_b_link, _seq_b_link) =
         author.send_keyload(&announcement_link, &vec![pks[2].into(), pks[3].into()]).await?;
     println!(
-        "\nSent Keyload for Sub C and D: {}, seq: {}\n",
+        "\nSent Keyload for Sub C and D: {}, tangle index: {:#}\n",
         keyload_b_link,
         _seq_b_link.unwrap()
     );
@@ -179,7 +179,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(msg_inputs_a[i].as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub A: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub A: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
 
         // Sub B Sends
@@ -190,7 +190,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(msg_inputs_b[i].as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub B: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub B: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 
@@ -226,7 +226,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(msg_inputs_c[i].as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub C: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub C: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
 
         // Sub D Sends
@@ -237,7 +237,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(msg_inputs_d[i].as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg from Sub D: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg from Sub D: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 

@@ -86,7 +86,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
-        println!("Sent msg: {}, {}", msg_link, msg_link.to_msg_index());
+        println!("Sent msg: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 

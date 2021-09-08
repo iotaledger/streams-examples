@@ -89,9 +89,9 @@ pub async fn example(node_url: &str) -> Result<()> {
         &vec![PublicKey::from_bytes(sub_a_pk)?.into()],
     ).await?;
     println!(
-        "\nSent Keyload for Sub A: {}, seq: {}\n",
+        "\nSent Keyload for Sub A: {}, sequence tangle index: {:#}\n",
         _keyload_a_link,
-        seq_a_link.as_ref().unwrap()
+        seq_a_link.as_ref().unwrap().to_msg_index()
     );
 
     // Author will now send signed encrypted messages to Sub A in a chain attached to Keyload A
@@ -118,7 +118,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg for Sub A: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg for Sub A: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
         seq_msg_link = seq_link;
     }
@@ -135,9 +135,9 @@ pub async fn example(node_url: &str) -> Result<()> {
     ).await?;
 
     println!(
-        "\nSent Keyload granting Sub B Forward Access, while revoking Sub A: {}, seq: {}\n",
+        "\nSent Keyload granting Sub B Forward Access, while revoking Sub A: {}, sequence tangle index: {:#}\n",
         _keyload_b_link,
-        seq_b_link.as_ref().unwrap()
+        seq_b_link.as_ref().unwrap().to_msg_index()
     );
 
     // Author will now send signed encrypted messages to Sub B in a chain attached to Keyload B
@@ -164,7 +164,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg for Sub B: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg for Sub B: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
         seq_msg_link = seq_link;
     }
@@ -181,9 +181,9 @@ pub async fn example(node_url: &str) -> Result<()> {
     ).await?;
 
     println!(
-        "\nSent Keyload granting Sub A Forward Access again, while revoking Sub B: {}, seq: {}\n",
+        "\nSent Keyload granting Sub A Forward Access again, while revoking Sub B: {}, sequence tangle index: {:#}\n",
         _keyload_c_link,
-        seq_c_link.as_ref().unwrap()
+        seq_c_link.as_ref().unwrap().to_msg_index()
     );
 
     // Author will send signed encrypted messages to Sub A again in a chain attached to Keyload C
@@ -210,7 +210,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg for Sub A again: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg for Sub A again: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 

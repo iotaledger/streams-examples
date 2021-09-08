@@ -101,26 +101,26 @@ pub async fn example(node_url: &str) -> Result<()> {
     // link itself, the second is an optional sequencing message.
     // ** In multi branch implementations, sequencing messages are sent to act as indexing references
     // for data location within the channel tree
-    let (_keyload_a_link, seq_a_link) = author.send_keyload(
+    let (keyload_a_link, _seq_a_link) = author.send_keyload(
         &announcement_link,
         &vec![PublicKey::from_bytes(sub_a_pk)?.into()],
     ).await?;
     println!(
-        "\nSent Keyload for Sub A: {}, seq: {}",
-        _keyload_a_link,
-        seq_a_link.as_ref().unwrap()
+        "\nSent Keyload for Sub A: {}, tangle index: {:#}",
+        keyload_a_link,
+        keyload_a_link.to_msg_index()
     );
 
     // Author will send the second Keyload with the PSK shared with Subscriber B (also linked to the
     // announcement message) to generate another new branch
-    let (_keyload_b_link, seq_b_link) = author.send_keyload(
+    let (keyload_b_link, _seq_b_link) = author.send_keyload(
         &announcement_link,
         &vec![pskid.into()]
     ).await?;
     println!(
-        "\nSent Keyload for Sub B: {}, seq: {}",
-        _keyload_b_link,
-        seq_b_link.as_ref().unwrap()
+        "\nSent Keyload for Sub B: {}, tangle index: {:#}",
+        keyload_b_link,
+        keyload_b_link.to_msg_index()
     );
 
     // Author will now send signed encrypted messages to Sub A in a chain attached to Keyload A
@@ -138,7 +138,7 @@ pub async fn example(node_url: &str) -> Result<()> {
         "A",
     ];
 
-    let mut prev_msg_link = _keyload_a_link;
+    let mut prev_msg_link = keyload_a_link;
     for input in &msg_inputs_a {
         let (msg_link, seq_link) = author.send_signed_packet(
             &prev_msg_link,
@@ -146,7 +146,7 @@ pub async fn example(node_url: &str) -> Result<()> {
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
         let seq_link = seq_link.unwrap();
-        println!("Sent msg for Sub A: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg for Sub A: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 
@@ -165,15 +165,14 @@ pub async fn example(node_url: &str) -> Result<()> {
         "B",
     ];
 
-    let mut prev_msg_link = _keyload_b_link;
+    let mut prev_msg_link = keyload_b_link;
     for input in &msg_inputs_b {
-        let (msg_link, seq_link) = author.send_signed_packet(
+        let (msg_link, _seq_link) = author.send_signed_packet(
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
-        let seq_link = seq_link.unwrap();
-        println!("Sent msg for Sub B: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg for Sub B: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 
@@ -184,13 +183,12 @@ pub async fn example(node_url: &str) -> Result<()> {
 
     let mut prev_msg_link = announcement_link;
     for input in &msg_inputs_all {
-        let (msg_link, seq_link) = author.send_signed_packet(
+        let (msg_link, _seq_link) = author.send_signed_packet(
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
         ).await?;
-        let seq_link = seq_link.unwrap();
-        println!("Sent msg for Anyone: {}, seq: {}", msg_link, seq_link);
+        println!("Sent msg for Anyone: {}, tangle index: {:#}", msg_link, msg_link.to_msg_index());
         prev_msg_link = msg_link;
     }
 
