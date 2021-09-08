@@ -10,6 +10,16 @@ have the `Announce` message link.
 A private branch with predefined user access. Subscribers are required to properly subscribe to be granted
 access to the messages published by the `Author`.
 
+#### [Public Single Depth](single_depth_public.rs)
+A public index retrievable channel. Author generates a public channel that anyone can read from once they
+have the `Announce` message link. Subscribers can retrieve messages using an anchor message link and message
+number.
+
+#### [Private Single Depth](single_depth_private.rs)
+A private index retrievable channel with predefined user access. Subscribers are required to properly subscribe
+to be granted access to the messages published by the `Author`. Once approved, Subscribers can retrieve messages
+using an anchor message link and message number.
+
 ### [Mixed Access Multi Branch](multi_branch_mixed_privacy.rs)
 A more complex implementation showing a mix of private and public access in a `Multi Branch` channel. Three 
 branches are generated with different message chains and access restrictions. Subscribers are defined:
