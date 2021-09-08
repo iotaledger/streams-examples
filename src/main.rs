@@ -19,6 +19,14 @@ async fn main() -> Result<()> {
     examples::single_branch_private::example(url).await?;
 
     println!("\n---------------------------------------");
+    println!("\nPublic - Single Depth - Single Publisher\n");
+    examples::single_depth_public::example(url).await?;
+
+    println!("\n---------------------------------------");
+    println!("\nPrivate - Single Depth - Single Publisher\n");
+    examples::single_depth_private::example(url).await?;
+
+    println!("\n---------------------------------------");
     println!("\nMixed - Multi Branch - Single Publisher\n");
     examples::multi_branch_mixed_privacy::example(url).await?;
 
