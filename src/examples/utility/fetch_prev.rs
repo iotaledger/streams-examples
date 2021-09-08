@@ -7,7 +7,7 @@ use iota_streams::{
 use crate::examples::{verify_messages, ALPH9};
 use rand::Rng;
 
-pub fn example(node_url: &str) -> Result<()> {
+pub async fn example(node_url: &str) -> Result<()> {
     // Generate a unique seed for the author
     let seed: &str = &(0..81)
         .map(|_| {
@@ -25,12 +25,12 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut author = Author::new(seed, ChannelType::SingleBranch, client);
 
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
-    let announcement_link = author.send_announce()?;
+    let announcement_link = author.send_announce().await?;
     // This link acts as a root for the channel itself
     let ann_link_string = announcement_link.to_string();
     println!(
-        "Announcement Link: {}\nTangle Index: {}\n",
-        ann_link_string, announcement_link
+        "Announcement Link: {}\nTangle Index: {:#}\n",
+        ann_link_string, announcement_link.to_msg_index()
     );
 
     // Author will now send signed encrypted messages in a chain
@@ -44,7 +44,7 @@ pub fn example(node_url: &str) -> Result<()> {
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
-        )?;
+        ).await?;
         println!("Sent msg: {}", msg_link);
         prev_msg_link = msg_link;
     }
@@ -53,16 +53,16 @@ pub fn example(node_url: &str) -> Result<()> {
         &prev_msg_link,
         &Bytes::default(),
         &Bytes("This is the last message".as_bytes().to_vec()),
-    )?;
+    ).await?;
     println!("\nSent last msg: {}\n", latest_msg_link);
 
     println!("Verifying previous msgs...\n");
     // Fetch single previous msg (this can be done by any sub that has access as well)
-    let msg = author.fetch_prev_msg(&latest_msg_link)?;
+    let msg = author.fetch_prev_msg(&latest_msg_link).await?;
     assert_eq!(msg.link, prev_msg_link);
 
     // Fetch whole chain of msgs
-    let msgs = author.fetch_prev_msgs(&latest_msg_link, msg_inputs.len())?;
+    let msgs = author.fetch_prev_msgs(&latest_msg_link, msg_inputs.len()).await?;
     verify_messages(&msg_inputs, msgs)?;
 
     Ok(())

@@ -9,12 +9,13 @@ use iota_streams::{
 
 use crate::examples::{verify_messages, ALPH9};
 use rand::Rng;
+use iota_streams::app::message::HasLink;
 
 /**
  * In this example, the Author will generate a new branch for each Subscriber, and each Subscriber
  * will only post/read from their individual branches
 */
-pub fn example(node_url: &str) -> Result<()> {
+pub async fn example(node_url: &str) -> Result<()> {
     // Generate a unique seed for the author
     let seed: &str = &(0..81)
         .map(|_| {
@@ -32,12 +33,12 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut author = Author::new(seed, ChannelType::MultiBranch, client.clone());
 
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
-    let announcement_link = author.send_announce()?;
+    let announcement_link = author.send_announce().await?;
     // This link acts as a root for the channel itself
     let ann_link_string = announcement_link.to_string();
     println!(
-        "Announcement Link: {}\nTangle Index: {}\n",
-        ann_link_string, announcement_link
+        "Announcement Link: {}\nTangle Index: {:#}\n",
+        ann_link_string, announcement_link.to_msg_index()
     );
 
     // ------------------------------------------------------------------
@@ -48,21 +49,20 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut subscriber_c = Subscriber::new("SubscriberC", client.clone());
     let mut subscriber_d = Subscriber::new("SubscriberD", client);
 
-    // Generate an Address object from the provided announcement link string from the Author
-    let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();
-    let ann_address = Address::from_str(ann_link_split[0], ann_link_split[1])?;
+    // Generate an Address object from the provided announcement link from the Author
+    let ann_address = Address::from_bytes(&announcement_link.to_bytes());
 
     // Receive the announcement message to start listening to the channel
-    subscriber_a.receive_announcement(&ann_address)?;
-    subscriber_b.receive_announcement(&ann_address)?;
-    subscriber_c.receive_announcement(&ann_address)?;
-    subscriber_d.receive_announcement(&ann_address)?;
+    subscriber_a.receive_announcement(&ann_address).await?;
+    subscriber_b.receive_announcement(&ann_address).await?;
+    subscriber_c.receive_announcement(&ann_address).await?;
+    subscriber_d.receive_announcement(&ann_address).await?;
 
     // Subscribers send subscription messages linked to announcement message
-    let subscribe_msg_a = subscriber_a.send_subscribe(&ann_address)?;
-    let subscribe_msg_b = subscriber_b.send_subscribe(&ann_address)?;
-    let subscribe_msg_c = subscriber_c.send_subscribe(&ann_address)?;
-    let subscribe_msg_d = subscriber_d.send_subscribe(&ann_address)?;
+    let subscribe_msg_a = subscriber_a.send_subscribe(&ann_address).await?;
+    let subscribe_msg_b = subscriber_b.send_subscribe(&ann_address).await?;
+    let subscribe_msg_c = subscriber_c.send_subscribe(&ann_address).await?;
+    let subscribe_msg_d = subscriber_d.send_subscribe(&ann_address).await?;
 
     // These are the subscription links that should be provided to the Author to complete subscription
     let sub_msg_a_str = subscribe_msg_a.to_string();
@@ -71,27 +71,27 @@ pub fn example(node_url: &str) -> Result<()> {
     let sub_msg_d_str = subscribe_msg_d.to_string();
 
     println!(
-        "Subscription msgs:\n\tSubscriber A: {}\n\tTangle Index: {}\n",
-        sub_msg_a_str, subscribe_msg_a
+        "Subscription msgs:\n\tSubscriber A: {}\n\tTangle Index: {:#}\n",
+        sub_msg_a_str, subscribe_msg_a.to_msg_index()
     );
     println!(
-        "\tSubscriber B: {}\n\tTangle Index: {}\n",
-        sub_msg_b_str, subscribe_msg_b
+        "\tSubscriber B: {}\n\tTangle Index: {:#}\n",
+        sub_msg_b_str, subscribe_msg_b.to_msg_index()
     );
     println!(
-        "\tSubscriber C: {}\n\tTangle Index: {}\n",
-        sub_msg_c_str, subscribe_msg_c
+        "\tSubscriber C: {}\n\tTangle Index: {:#}\n",
+        sub_msg_c_str, subscribe_msg_c.to_msg_index()
     );
     println!(
-        "\tSubscriber D: {}\n\tTangle Index: {}\n",
-        sub_msg_d_str, subscribe_msg_d
+        "\tSubscriber D: {}\n\tTangle Index: {:#}\n",
+        sub_msg_d_str, subscribe_msg_d.to_msg_index()
     );
 
     // Fetch subscriber public keys (for use by author in issuing a keyload)
-    let sub_a_pk = subscriber_a.get_pk().as_bytes();
-    let sub_b_pk = subscriber_b.get_pk().as_bytes();
-    let sub_c_pk = subscriber_c.get_pk().as_bytes();
-    let sub_d_pk = subscriber_d.get_pk().as_bytes();
+    let sub_a_pk = subscriber_a.get_public_key().as_bytes();
+    let sub_b_pk = subscriber_b.get_public_key().as_bytes();
+    let sub_c_pk = subscriber_c.get_public_key().as_bytes();
+    let sub_d_pk = subscriber_d.get_public_key().as_bytes();
 
     // We'll use this to sort messages on the retrieval end
     let pks = vec![
@@ -102,34 +102,31 @@ pub fn example(node_url: &str) -> Result<()> {
     ];
     // ----------------------------------------------------------------------
     // Get Address object from subscription message link provided by Subscriber A
-    let sub_a_link_split = sub_msg_a_str.split(':').collect::<Vec<&str>>();
-    let sub_a_address = Address::from_str(sub_a_link_split[0], sub_a_link_split[1])?;
+    let sub_a_address = Address::from_bytes(&subscribe_msg_a.to_bytes());
 
     // Get Address object from subscription message link provided by SubscriberB
-    let sub_b_link_split = sub_msg_b_str.split(':').collect::<Vec<&str>>();
-    let sub_b_address = Address::from_str(sub_b_link_split[0], sub_b_link_split[1])?;
+    let sub_b_address = Address::from_bytes(&subscribe_msg_b.to_bytes());
 
     // Get Address object from subscription message link provided by Subscriber C
-    let sub_c_link_split = sub_msg_c_str.split(':').collect::<Vec<&str>>();
-    let sub_c_address = Address::from_str(sub_c_link_split[0], sub_c_link_split[1])?;
+    let sub_c_address = Address::from_bytes(&subscribe_msg_c.to_bytes());
 
     // Get Address object from subscription message link provided by Subscriber C
-    let sub_d_link_split = sub_msg_d_str.split(':').collect::<Vec<&str>>();
-    let sub_d_address = Address::from_str(sub_d_link_split[0], sub_d_link_split[1])?;
+    let sub_d_address = Address::from_bytes(&subscribe_msg_d.to_bytes());
 
     // Author processes subscription messages
-    author.receive_subscribe(&sub_a_address)?;
-    author.receive_subscribe(&sub_b_address)?;
-    author.receive_subscribe(&sub_c_address)?;
-    author.receive_subscribe(&sub_d_address)?;
+    author.receive_subscribe(&sub_a_address).await?;
+    author.receive_subscribe(&sub_b_address).await?;
+    author.receive_subscribe(&sub_c_address).await?;
+    author.receive_subscribe(&sub_d_address).await?;
 
     // Expectant users are now ready to be included in Keyload messages
 
     // Author sends keyload with the public keys of Sub A and B (linked to announcement message) to
-    // generate a new branch. This will return a tuple containing the message links. The first is
-    // the message link itself, the second is the sequencing message link.
+    // generate a new branch. These public keys can be converted to Identifiers with a simple From/
+    // Into conversion. This will return a tuple containing the message links. The first is the
+    // message link itself, the second is the sequencing message link.
     let (keyload_a_link, _seq_a_link) =
-        author.send_keyload(&announcement_link, &[], &vec![pks[0], pks[1]])?;
+        author.send_keyload(&announcement_link, &vec![pks[0].into(), pks[1].into()]).await?;
     println!(
         "\nSent Keyload for Sub A and B: {}, seq: {}",
         keyload_a_link,
@@ -139,7 +136,7 @@ pub fn example(node_url: &str) -> Result<()> {
     // Author will send the second Keyload with the public key of Subscribers C and D (also linked
     // to the announcement message) to generate another new branch
     let (keyload_b_link, _seq_b_link) =
-        author.send_keyload(&announcement_link, &[], &vec![pks[2], pks[3]])?;
+        author.send_keyload(&announcement_link, &vec![pks[2].into(), pks[3].into()]).await?;
     println!(
         "\nSent Keyload for Sub C and D: {}, seq: {}\n",
         keyload_b_link,
@@ -173,25 +170,25 @@ pub fn example(node_url: &str) -> Result<()> {
         // ***********************  IMPORTANT  ****************************************
         // Before sending any messages, a publisher in a multi publisher channel should sync their state
         // to ensure they are up to date
-        subscriber_a.sync_state();
+        subscriber_a.sync_state().await;
 
         // Sub A Sends
         let (msg_link, seq_link) = subscriber_a.send_signed_packet(
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(msg_inputs_a[i].as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg from Sub A: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
 
         // Sub B Sends
-        subscriber_b.sync_state();
+        subscriber_b.sync_state().await;
         let (msg_link, seq_link) = subscriber_b.send_signed_packet(
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(msg_inputs_b[i].as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg from Sub B: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
@@ -222,23 +219,23 @@ pub fn example(node_url: &str) -> Result<()> {
     prev_msg_link = keyload_b_link;
     for i in 0..msg_inputs_c.len() {
         // Sub C Sends
-        subscriber_c.sync_state();
+        subscriber_c.sync_state().await;
         let (msg_link, seq_link) = subscriber_c.send_signed_packet(
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(msg_inputs_c[i].as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg from Sub C: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
 
         // Sub D Sends
-        subscriber_d.sync_state();
+        subscriber_d.sync_state().await;
         let (msg_link, seq_link) = subscriber_d.send_signed_packet(
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(msg_inputs_d[i].as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg from Sub D: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
@@ -246,7 +243,7 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // -----------------------------------------------------------------------------
     // Author can now fetch these messages
-    let mut retrieved = author.fetch_all_next_msgs();
+    let mut retrieved = author.fetch_all_next_msgs().await;
     println!("\nAuthor found {} messages", retrieved.len());
     let mut retrieved_lists = split_retrieved(&mut retrieved, pks);
     println!("\nVerifying message retrieval: Author");

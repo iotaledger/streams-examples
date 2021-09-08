@@ -6,8 +6,9 @@ use iota_streams::{
 
 use crate::examples::{verify_messages, ALPH9};
 use rand::Rng;
+use core::str::FromStr;
 
-pub fn example(node_url: &str) -> Result<()> {
+pub async fn example(node_url: &str) -> Result<()> {
     // Generate a unique seed for the author
     let seed: &str = &(0..81)
         .map(|_| {
@@ -25,12 +26,12 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut author = Author::new(seed, ChannelType::SingleBranch, client.clone());
 
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
-    let announcement_link = author.send_announce()?;
+    let announcement_link = author.send_announce().await?;
     // This link acts as a root for the channel itself
     let ann_link_string = announcement_link.to_string();
     println!(
-        "Announcement Link: {}\nTangle Index: {}\n",
-        ann_link_string, announcement_link
+        "Announcement Link: {}\nTangle Index: {:#}\n",
+        ann_link_string, announcement_link.to_msg_index()
     );
 
     // Author will now send signed encrypted messages in a chain
@@ -44,7 +45,7 @@ pub fn example(node_url: &str) -> Result<()> {
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
-        )?;
+        ).await?;
         println!("Sent msg: {}", msg_link);
         prev_msg_link = msg_link;
     }
@@ -54,13 +55,12 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut subscriber = Subscriber::new("SubscriberA", client);
 
     // Generate an Address object from the provided announcement link string from the Author
-    let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();
-    let ann_address = Address::from_str(ann_link_split[0], ann_link_split[1])?;
+    let ann_address = Address::from_str(&ann_link_string)?;
 
     // Receive the announcement message to start listening to the channel
-    subscriber.receive_announcement(&ann_address)?;
+    subscriber.receive_announcement(&ann_address).await?;
 
-    let retrieved = subscriber.fetch_all_next_msgs();
+    let retrieved = subscriber.fetch_all_next_msgs().await;
     verify_messages(&msg_inputs, retrieved)?;
 
     Ok(())

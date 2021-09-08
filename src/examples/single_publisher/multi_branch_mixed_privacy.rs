@@ -1,15 +1,20 @@
 use iota_streams::{
     app::transport::tangle::client::Client,
-    app_channels::api::tangle::{
-        Address, Author, Bytes, ChannelType, PublicKey, Subscriber, UnwrappedMessage,
+    app_channels::api::{
+        psk_from_seed,
+        pskid_from_psk,
+        tangle::{
+            Address, Author, Bytes, ChannelType, PublicKey, Subscriber, UnwrappedMessage,
+        }
     },
-    core::{println, psk::Psk, Result},
+    core::{println, Result},
 };
 
 use crate::examples::{verify_messages, ALPH9};
 use rand::Rng;
+use core::str::FromStr;
 
-pub fn example(node_url: &str) -> Result<()> {
+pub async fn example(node_url: &str) -> Result<()> {
     // Generate a unique seed for the author
     let seed: &str = &(0..81)
         .map(|_| {
@@ -27,12 +32,12 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut author = Author::new(seed, ChannelType::MultiBranch, client.clone());
 
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
-    let announcement_link = author.send_announce()?;
+    let announcement_link = author.send_announce().await?;
     // This link acts as a root for the channel itself
     let ann_link_string = announcement_link.to_string();
     println!(
-        "Announcement Link: {}\nTangle Index: {}\n",
-        ann_link_string, announcement_link
+        "Announcement Link: {}\nTangle Index: {:#}\n",
+        ann_link_string, announcement_link.to_msg_index()
     );
 
     // Generate a key to be used as a Pre Shared Key
@@ -40,8 +45,9 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // Author will now store a PSK to be used by Subscriber B. This will return a PskId (first half
     // of key for usage in keyload generation)
-    let psk = Psk::clone_from_slice(&key);
-    let pskid = author.store_psk(psk);
+    let psk = psk_from_seed(&key);
+    let pskid = pskid_from_psk(&psk);
+    author.store_psk(pskid, psk)?;
 
     // ------------------------------------------------------------------
     // In their own separate instances generate the subscriber(s) that will be attaching to the channel
@@ -54,40 +60,39 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut subscriber_c = Subscriber::new("SubscriberC", client);
 
     // Generate an Address object from the provided announcement link string from the Author
-    let ann_link_split = ann_link_string.split(':').collect::<Vec<&str>>();
-    let ann_address = Address::from_str(ann_link_split[0], ann_link_split[1])?;
+    let ann_address = Address::from_str(&ann_link_string)?;
 
     // Receive the announcement message to start listening to the channel
-    subscriber_a.receive_announcement(&ann_address)?;
-    subscriber_b.receive_announcement(&ann_address)?;
-    subscriber_c.receive_announcement(&ann_address)?;
+    subscriber_a.receive_announcement(&ann_address).await?;
+    subscriber_b.receive_announcement(&ann_address).await?;
+    subscriber_c.receive_announcement(&ann_address).await?;
 
     // Sub A sends subscription message linked to announcement message
-    let subscribe_msg_a = subscriber_a.send_subscribe(&ann_address)?;
+    let subscribe_msg_a = subscriber_a.send_subscribe(&ann_address).await?;
 
     // Fetch sub A public key (for use by author in issuing a keyload)
-    let sub_a_pk = subscriber_a.get_pk().as_bytes();
+    let sub_a_pk = subscriber_a.get_public_key().as_bytes();
 
     // Sub B stores PSK shared by Author
-    let psk = Psk::clone_from_slice(&key);
-    let _sub_pskid = subscriber_b.store_psk(psk);
+    let psk = psk_from_seed(&key);
+    let pskid = pskid_from_psk(&psk);
+    subscriber_b.store_psk(pskid, psk)?;
 
     // This is the subscription link that should be provided to the Author to complete subscription
     // for user A
     let sub_msg_a_str = subscribe_msg_a.to_string();
 
     println!(
-        "Subscription msg:\n\tSubscriber A: {}\n\tTangle Index: {}\n",
-        sub_msg_a_str, subscribe_msg_a
+        "Subscription msg:\n\tSubscriber A: {}\n\tTangle Index: {:#}\n",
+        sub_msg_a_str, subscribe_msg_a.to_msg_index()
     );
     // ----------------------------------------------------------------------
 
     // Get Address object from subscription message link provided by Subscriber A
-    let sub_a_link_split = sub_msg_a_str.split(':').collect::<Vec<&str>>();
-    let sub_a_address = Address::from_str(sub_a_link_split[0], sub_a_link_split[1])?;
+    let sub_a_address = Address::from_str(&sub_msg_a_str)?;
 
     // Author processes subscriber A
-    author.receive_subscribe(&sub_a_address)?;
+    author.receive_subscribe(&sub_a_address).await?;
 
     // Expectant users are now ready to be included in Keyload messages
 
@@ -98,9 +103,8 @@ pub fn example(node_url: &str) -> Result<()> {
     // for data location within the channel tree
     let (_keyload_a_link, seq_a_link) = author.send_keyload(
         &announcement_link,
-        &[],
-        &vec![PublicKey::from_bytes(sub_a_pk)?],
-    )?;
+        &vec![PublicKey::from_bytes(sub_a_pk)?.into()],
+    ).await?;
     println!(
         "\nSent Keyload for Sub A: {}, seq: {}",
         _keyload_a_link,
@@ -109,8 +113,10 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // Author will send the second Keyload with the PSK shared with Subscriber B (also linked to the
     // announcement message) to generate another new branch
-    let (_keyload_b_link, seq_b_link) =
-        author.send_keyload(&announcement_link, &[pskid], &vec![])?;
+    let (_keyload_b_link, seq_b_link) = author.send_keyload(
+        &announcement_link,
+        &vec![pskid.into()]
+    ).await?;
     println!(
         "\nSent Keyload for Sub B: {}, seq: {}",
         _keyload_b_link,
@@ -138,7 +144,7 @@ pub fn example(node_url: &str) -> Result<()> {
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg for Sub A: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
@@ -165,7 +171,7 @@ pub fn example(node_url: &str) -> Result<()> {
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg for Sub B: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
@@ -182,7 +188,7 @@ pub fn example(node_url: &str) -> Result<()> {
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
-        )?;
+        ).await?;
         let seq_link = seq_link.unwrap();
         println!("Sent msg for Anyone: {}, seq: {}", msg_link, seq_link);
         prev_msg_link = msg_link;
@@ -190,7 +196,7 @@ pub fn example(node_url: &str) -> Result<()> {
 
     // -----------------------------------------------------------------------------
     // Subscribers can now fetch these messages
-    let mut retrieved = subscriber_a.fetch_all_next_msgs();
+    let mut retrieved = subscriber_a.fetch_all_next_msgs().await;
     let (retrieveda, retrievedb, retrieved_all) =
         split_retrieved(&mut retrieved, msg_inputs_a.len(), msg_inputs_b.len());
     println!("\nVerifying message retrieval: SubscriberA");
@@ -198,7 +204,7 @@ pub fn example(node_url: &str) -> Result<()> {
     verify_messages(&[], retrievedb)?;
     verify_messages(&msg_inputs_all, retrieved_all)?;
 
-    retrieved = subscriber_b.fetch_all_next_msgs();
+    retrieved = subscriber_b.fetch_all_next_msgs().await;
     let (retrieveda, retrievedb, retrieved_all) =
         split_retrieved(&mut retrieved, msg_inputs_a.len(), msg_inputs_b.len());
     println!("\nVerifying message retrieval: SubscriberB");
@@ -206,7 +212,7 @@ pub fn example(node_url: &str) -> Result<()> {
     verify_messages(&msg_inputs_b, retrievedb)?;
     verify_messages(&msg_inputs_all, retrieved_all)?;
 
-    retrieved = subscriber_c.fetch_all_next_msgs();
+    retrieved = subscriber_c.fetch_all_next_msgs().await;
     println!("\nVerifying message retrieval: SubscriberC");
     verify_messages(&msg_inputs_all, retrieved)?;
 

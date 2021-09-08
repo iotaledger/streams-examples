@@ -7,7 +7,7 @@ use iota_streams::{
 use crate::examples::{verify_messages, ALPH9};
 use rand::Rng;
 
-pub fn example(node_url: &str) -> Result<()> {
+pub async fn example(node_url: &str) -> Result<()> {
     // Generate a unique seed for the author
     let seed: &str = &(0..81)
         .map(|_| {
@@ -25,9 +25,9 @@ pub fn example(node_url: &str) -> Result<()> {
     let mut author = Author::new(seed, ChannelType::SingleBranch, client.clone());
 
     // Create the channel with an announcement message. Make sure to save the resulting link somewhere,
-    let announcement_link = author.send_announce()?;
+    let announcement_link = author.send_announce().await?;
     println!(
-        "Announcement Link: {:?}\nTangle Index: {}\n",
+        "Announcement Link: {}\nTangle Index: {:#}\n",
         announcement_link, announcement_link
     );
 
@@ -40,13 +40,13 @@ pub fn example(node_url: &str) -> Result<()> {
             &prev_msg_link,
             &Bytes::default(),
             &Bytes(input.as_bytes().to_vec()),
-        )?;
+        ).await?;
         println!("Sent msg: {}", msg_link);
         prev_msg_link = msg_link;
     }
 
     // Export State of author
-    let state = author.export("Password")?;
+    let state = author.export("Password").await?;
     // Write state to file
     std::fs::write("./author_state.bin", state)?;
 
@@ -54,15 +54,15 @@ pub fn example(node_url: &str) -> Result<()> {
     let state = std::fs::read("./author_state.bin")?;
 
     // Import state
-    let mut new_author = Author::import(&state, "Password", client)?;
+    let mut new_author = Author::import(&state, "Password", client).await?;
 
     let (last_msg_link, _seq) = new_author.send_signed_packet(
         &prev_msg_link,
         &Bytes::default(),
         &Bytes("One last message".as_bytes().to_vec()),
-    )?;
+    ).await?;
 
-    let retrieved = new_author.fetch_prev_msgs(&last_msg_link, msg_inputs.len())?;
+    let retrieved = new_author.fetch_prev_msgs(&last_msg_link, msg_inputs.len()).await?;
     verify_messages(&msg_inputs, retrieved)?;
 
     Ok(())
