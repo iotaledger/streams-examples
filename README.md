@@ -17,7 +17,7 @@ would like faster performance it is recommended that you change this node url to
 in the `src/main.rs` file before running. 
 
 ## Single Publisher Examples 
-####[link](src/examples/single_publisher)
+#### [link](src/examples/single_publisher)
 
 These examples are intended to give an overview on different approaches for having a single publisher 
 in a channel. 
@@ -49,7 +49,7 @@ branches are generated with different message chains and access restrictions. Su
 
 
 ## Multi Publisher Examples 
-####[link](src/examples/multi_publisher)
+#### [link](src/examples/multi_publisher)
 These examples are intended to give an overview on different approaches for having multiple publishers 
 in a channel. It is highly recommended that one does not have multiple concurrent publishers within a 
 `Single Branch` channel. When there are multiple publishers within the same branch of a `Multi Branch` 
@@ -68,7 +68,7 @@ publishing entity to keep states in check. The same is done for Subscribers C an
 
 
 ## Utility Examples 
-####[link](src/examples/utility)
+#### [link](src/examples/utility)
 These examples highlight specific pieces of Streams functionality. 
 
 #### [Fetch Previous Messages](src/examples/utility/fetch_prev.rs)
